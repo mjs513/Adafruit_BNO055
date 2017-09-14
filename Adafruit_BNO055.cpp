@@ -25,6 +25,7 @@
 
 #include <math.h>
 #include <limits.h>
+#include <Wire.h>
 
 #include "Adafruit_BNO055.h"
 
@@ -52,15 +53,45 @@ Adafruit_BNO055::Adafruit_BNO055(int32_t sensorID, uint8_t address)
     @brief  Sets up the HW
 */
 /**************************************************************************/
-bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode)
+bool  Adafruit_BNO055::begin( )  //sets default to _wire ->  and opmode
+{
+	_wire = &Wire;
+	_wire -> begin();
+	adafruit_bno055_opmode_t mode = OPERATION_MODE_NDOF;
+	return init(mode);
+}
+	
+bool  Adafruit_BNO055::begin( TwoWire  &theWire ) //sets _wire ->  bus and default op mode
+{
+	_wire = &theWire ;
+	_wire -> begin();
+	adafruit_bno055_opmode_t mode = OPERATION_MODE_NDOF;
+	return init(mode);
+}
+	
+bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode) //default _wire ->  bus & selects op mode
 {
   /* Enable I2C */
-  Wire.begin();
+  _wire =  &Wire;
+  _wire -> begin();
+  return init(mode);
+}
 
+bool  Adafruit_BNO055::begin( adafruit_bno055_opmode_t mode, TwoWire &theWire) //selects both
+{
+  /* Enable I2C */
+  _wire = &theWire;
+  _wire -> begin();
+  return init(mode);
+}
+
+
+bool Adafruit_BNO055::init(adafruit_bno055_opmode_t mode)
+{
   // BNO055 clock stretches for 500us or more!
-#ifdef ESP8266
-  Wire.setClockStretchLimit(1000); // Allow for 1000us of clock stretching
-#endif
+  #ifdef ESP8266
+    _wire -> setClockStretchLimit(1000); // Allow for 1000us of clock stretching
+  #endif
 
   /* Make sure we have the right device */
   uint8_t id = read8(BNO055_CHIP_ID_ADDR);
@@ -101,12 +132,12 @@ bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode)
   */
 
   /* Configure axis mapping (see section 3.4) */
-  /*
-  write8(BNO055_AXIS_MAP_CONFIG_ADDR, REMAP_CONFIG_P2); // P0-P7, Default is P1
+
+  write8(BNO055_AXIS_MAP_CONFIG_ADDR, REMAP_CONFIG_P3); // P0-P7, Default is P1
   delay(10);
-  write8(BNO055_AXIS_MAP_SIGN_ADDR, REMAP_SIGN_P2); // P0-P7, Default is P1
+  write8(BNO055_AXIS_MAP_SIGN_ADDR, REMAP_SIGN_P3); // P0-P7, Default is P1
   delay(10);
-  */
+
   
   write8(BNO055_SYS_TRIGGER_ADDR, 0x0);
   delay(10);
@@ -561,15 +592,15 @@ bool Adafruit_BNO055::isFullyCalibrated(void)
 /**************************************************************************/
 bool Adafruit_BNO055::write8(adafruit_bno055_reg_t reg, byte value)
 {
-  Wire.beginTransmission(_address);
+  _wire -> beginTransmission(_address);
   #if ARDUINO >= 100
-    Wire.write((uint8_t)reg);
-    Wire.write((uint8_t)value);
+    _wire -> write((uint8_t)reg);
+    _wire -> write((uint8_t)value);
   #else
-    Wire.send(reg);
-    Wire.send(value);
+    _wire -> send(reg);
+    _wire -> send(value);
   #endif
-  Wire.endTransmission();
+  _wire -> endTransmission();
 
   /* ToDo: Check for error! */
   return true;
@@ -584,18 +615,18 @@ byte Adafruit_BNO055::read8(adafruit_bno055_reg_t reg )
 {
   byte value = 0;
 
-  Wire.beginTransmission(_address);
+  _wire -> beginTransmission(_address);
   #if ARDUINO >= 100
-    Wire.write((uint8_t)reg);
+    _wire -> write((uint8_t)reg);
   #else
-    Wire.send(reg);
+    _wire -> send(reg);
   #endif
-  Wire.endTransmission();
-  Wire.requestFrom(_address, (byte)1);
+  _wire -> endTransmission();
+  _wire -> requestFrom(_address, (byte)1);
   #if ARDUINO >= 100
-    value = Wire.read();
+    value = _wire -> read();
   #else
-    value = Wire.receive();
+    value = _wire -> receive();
   #endif
 
   return value;
@@ -608,21 +639,21 @@ byte Adafruit_BNO055::read8(adafruit_bno055_reg_t reg )
 /**************************************************************************/
 bool Adafruit_BNO055::readLen(adafruit_bno055_reg_t reg, byte * buffer, uint8_t len)
 {
-  Wire.beginTransmission(_address);
+  _wire -> beginTransmission(_address);
   #if ARDUINO >= 100
-    Wire.write((uint8_t)reg);
+    _wire -> write((uint8_t)reg);
   #else
-    Wire.send(reg);
+    _wire -> send(reg);
   #endif
-  Wire.endTransmission();
-  Wire.requestFrom(_address, (byte)len);
+  _wire -> endTransmission();
+  _wire -> requestFrom(_address, (byte)len);
 
   for (uint8_t i = 0; i < len; i++)
   {
     #if ARDUINO >= 100
-      buffer[i] = Wire.read();
+      buffer[i] = _wire -> read();
     #else
-      buffer[i] = Wire.receive();
+      buffer[i] = _wire -> receive();
     #endif
   }
 

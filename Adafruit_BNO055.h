@@ -285,7 +285,13 @@ class Adafruit_BNO055 : public Adafruit_Sensor
 #else
     Adafruit_BNO055 ( int32_t sensorID = -1, uint8_t address = BNO055_ADDRESS_A );
 #endif
-    bool  begin               ( adafruit_bno055_opmode_t mode = OPERATION_MODE_NDOF );
+    bool  begin( );
+    bool  begin( TwoWire &theWire );
+    bool  begin( adafruit_bno055_opmode_t mode);
+    bool  begin( adafruit_bno055_opmode_t mode, TwoWire &theWire);
+
+    bool  init(adafruit_bno055_opmode_t mode);
+
     void  setMode             ( adafruit_bno055_opmode_t mode );
     void  getRevInfo          ( adafruit_bno055_rev_info_t* );
     void  displayRevInfo      ( void );
@@ -316,6 +322,7 @@ class Adafruit_BNO055 : public Adafruit_Sensor
     bool  readLen ( adafruit_bno055_reg_t, byte* buffer, uint8_t len );
     bool  write8  ( adafruit_bno055_reg_t, byte value );
 
+    TwoWire *_wire;
     uint8_t _address;
     int32_t _sensorID;
     adafruit_bno055_opmode_t _mode;
